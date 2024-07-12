@@ -62,10 +62,9 @@ connect(port::Integer) = YakConnection(Sockets.connect(port))
 connect(host, port::Integer) = YakConnection(Sockets.connect(host, port))
 
 function (conn::YakConnection)(mesg::AbstractString)
-    # FIXME close connection on error
     send_message(conn, 'X', mesg)
     type, answer = recv_message(conn)
-    type == 'E' && error(answer)
+    type == 'E' && throw(YakError(answer))
     return answer
 end
 
@@ -114,7 +113,7 @@ function send_message(::Type{UInt8}, conn::YakConnection, id::Char, mesg::Abstra
     end
     buffer[i += 1] = '\n'
     @assert i == length(buffer)
-    write(conn.io, buffer)
+    write(conn.io, buffer) # FIXME close connection on error?
     return nothing
 end
 
@@ -135,7 +134,10 @@ function recv_message(conn::YakConnection)
     buffer = Array{UInt8}(undef, 4)
     read!(conn.io, buffer)
     mesg_type = Char(buffer[1]) # message type
-    buffer[2] == UInt8(':') || malformed_message(':', byte)
+    if buffer[2] != UInt8(':')
+        close(conn)
+        throw(malformed_message(':', byte))
+    end
     local byte
     mesg_size = 0
     index = 2
@@ -148,14 +150,18 @@ function recv_message(conn::YakConnection)
             digit = Int(byte) - Int('0')
             mesg_size = digit + 10*mesg_size
         else
-            malformed_message("a digit", byte)
+            close(conn)
+            throw(malformed_message("a digit", byte))
         end
     end
 
     # Read the remainingg part of the message, that is its content.
     read!(conn.io, resize!(buffer, mesg_size + 1)) # +1 for the final newline
     byte = buffer[end]
-    byte == UInt8('\n') || malformed_message('\n', byte)
+    if byte != UInt8('\n')
+        close(conn)
+        throw(malformed_message('\n', byte))
+    end
     mesg = String(resize!(buffer, mesg_size))
     return mesg_type, mesg
 end
@@ -164,8 +170,9 @@ hex(b::Unsigned) = string(b, base=16)
 hex(c::Char) = hex(Integer(c))
 
 @noinline malformed_message(c::Char, b::UInt8) =
-    error("malformed message, expecting a '$c' (ASCII 0x$(hex(c))), got 0x$(hex(b))")
-@noinline malformed_message(s::AbstractString, b::UInt8) =
-    error("malformed message, expecting $s, got 0x$(hex(b))")
+    YakError("malformed message, expecting a '$c' (ASCII 0x$(hex(c))), got 0x$(hex(b))")
 
-end
+@noinline malformed_message(s::AbstractString, b::UInt8) =
+    YakError("malformed message, expecting $s, got 0x$(hex(b))")
+
+end # module
