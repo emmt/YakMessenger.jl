@@ -152,7 +152,7 @@ function recv_message(conn::YakConnection)
         end
     end
 
-    # Read the remainingg part of the message, that is its body.
+    # Read the remainingg part of the message, that is its content.
     read!(conn.io, resize!(buffer, mesg_size + 1)) # +1 for the final newline
     byte = buffer[end]
     byte == UInt8('\n') || malformed_message('\n', byte)

@@ -49,8 +49,8 @@
  *
  *  where `${id}` is a single ASCII character specifying the type of the message: `X` for
  *  an eXpression to be evaluated, `E` for an Error, `R` for a Result, `${len}` is the
- *  length of the message body (in bytes, not accounting for the final newline), `\n` is a
- *  newline character (ASCII 0x0a) and `${mesg}` is the message body.
+ *  length of the message content (in bytes, not accounting for the final newline), `\n`
+ *  is a newline character (ASCII 0x0a) and `${mesg}` is the message content.
  *
  *  A server only responds to messages of type `X`. Other messages are just printed.
  *
@@ -234,9 +234,9 @@ func _yak_recv_message(sock, &id)
 
      Private function to receive a message from a connected peer. This function does not
      throw errors because it may be used in a callback. Returned value is a string, `str`.
-     If an error occurs, `str` is the error message; otherwise, `str` is the message body.
-     Caller's variable `id` is set to indicate an error (`id < 0`) or to identify the
-     type of the message.
+     If an error occurs, `str` is the error message; otherwise, `str` is the message
+     content. Caller's variable `id` is set to indicate an error (`id < 0`) or to identify
+     the type of the message.
 
    SEE ALSO: yak_send, _yak_send_message;
  */
@@ -281,7 +281,7 @@ func _yak_recv_message(sock, &id)
         size = digit + 10*size;
     }
 
-    // Read the remainingg part of the message, that is its body.
+    // Read the remainingg part of the message, that is its content.
     ++size; // for the final newline
     if (sizeof(buffer) != size) {
         buffer = array(char, size);

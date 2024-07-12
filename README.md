@@ -1,15 +1,15 @@
-# YakMessenger [![Build Status](https://github.com/emmt/YakMessenger.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/emmt/YakMessenger.jl/actions/workflows/CI.yml?query=branch%3Amain) [![Coverage](https://codecov.io/gh/emmt/YakMessenger.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/emmt/YakMessenger.jl) [![Aqua](https://raw.githubusercontent.com/JuliaTesting/Aqua.jl/master/badge.svg)](https://github.com/JuliaTesting/Aqua.jl)
+# YakMessenger [![Build Status](https://github.com/emmt/YakMessenger.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/emmt/YakMessenger.jl/actions/workflows/CI.yml?query=branch%3Amain) [![Coverage](https://codecov.io/gh/emmt/YakMessenger.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/emmt/YakMessenger.jl)
 
 `YakMessenger` is *yet another kind* of messaging system to exchange textual messages
 between a server and its connected clients.
 
 ## Contents
 
-The [`yorick`](./yorick) directory stores a Yorick implementation of the messaging system,
-of a simple Yorick command server, and functions for Yorick clients.
+In the [`yorick`](./yorick) directory, there is a Yorick implementation of the messaging
+system, of a simple Yorick command server, and functions for Yorick clients.
 
-The [`src`](./src) directory stores a Julia implementation of the messaging system and
-functions for Julia clients.
+In the [`src`](./src) directory, there is a Julia implementation of the messaging system
+and of methods for Julia clients.
 
 ## Julia usage for clients
 
@@ -28,8 +28,8 @@ using YakMessenger
 conn = YakConnection([host,] port)
 ```
 
-where `port` is the port number (an integer) where the server is listening and `host` is
-the address of the machine running the server. Argument `host` is optional, if omitted the
+with `port` the port number (an integer) where the server is listening and `host` the
+address of the machine running the server. Argument `host` is optional, if omitted the
 server is assumed to run on the same machine as the client.
 
 To send a command to the server (and receive an answer), simply do:
@@ -51,7 +51,7 @@ YakMessenger.send_message(conn, id, mesg)
 
 where `id` is the message type (see *Message format* below) and `mesg` is the message
 content. These methods are the building-blocks for implementing Yak clients, servers, and
-handling of new message type.
+handling of new message types.
 
 
 ## The Yak messaging system
@@ -65,18 +65,18 @@ The protocol is simple and based on messages of the form (using a shell-like syn
 ```
 
 where `${id}` is a single ASCII character specifying the type of the message (more on this
-below), `${len}` is the human readable length of the message body (in bytes, not
+below), `${len}` is the human readable length of the message content (in bytes, not
 accounting for the final newline), `\n` is a newline character (ASCII 0x0a) and `${mesg}`
-is the message body.
+is the message content.
 
 The format of a message is intended to be printable (if `mesg` is printable) and easy to
 parse. When receiving a message, the size of the message can be inferred by reading the
-header `${id}:${len}\n` of the message which consists in a few number of bytes. If a
-received message appears to be corrupted or malformed, the connection shall be closed by
-the receiver. The receiver can start by reading the 4 first bytes (the minimal header
-size), then read the remaining header part byte-by-byte (until the first newline), and
-finally read the `len + 1` bytes of the `${mesg}\n` part. In that way it is less likely
-for the receiver to be blocked when reading a connection is a blocking operation.
+header `${id}:${len}\n` of the message is only a few number of bytes. If a received
+message appears to be corrupted or malformed, the connection shall be closed by the
+receiver. The receiver can start by reading the 4 first bytes (the minimal header size),
+then reads the remaining header part byte-by-byte (until the first newline), and finally
+reads the `len + 1` bytes of the `${mesg}\n` part. In that way it is less likely for the
+receiver to be blocked when reading a connection is a blocking operation.
 
 ### Message types
 
@@ -94,3 +94,6 @@ The following message types are implemented (more may be added later):
 In Yorick, when a callback is called with no pending data to receive, it means that
 connection has been closed by peer. In a callback, commands like `pause` are not allowed.
 Calls to `sockrecv` are blocking.
+
+It takes a few tens of microseconds for a Julia client to send a simple command to a
+Yorick Yak server and receive the answer.
