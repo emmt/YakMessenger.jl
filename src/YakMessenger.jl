@@ -101,12 +101,11 @@ function send_message(::Type{UInt8}, conn::YakConnection, id::Char, mesg::Abstra
     buffer[i += 1] = id
     buffer[i += 1] = ':'
     r = len
-    while r > 10
+    for j in 1:ndigits
         m = div(m, 10)
         q, r = divrem(r, m)
         buffer[i += 1] = '0' + q
     end
-    buffer[i += 1] = '0' + r
     buffer[i += 1] = '\n'
     for j in 1:len
         buffer[i += 1] = codeunit(mesg, j)
