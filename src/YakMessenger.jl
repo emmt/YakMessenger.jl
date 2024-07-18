@@ -1,6 +1,6 @@
 """
 
-`YakMessenger` is *yet another kind* of messenging system.
+`YakMessenger` is *yet another kind* of messaging system.
 
 """
 module YakMessenger
@@ -79,10 +79,10 @@ to specify the message type. Argument `mesg` is the message content.
 See also [`YakMessenger.recv_message`](@ref).
 
 """
-send_message(conn::YakConnection, id::Char, mesg::AbstractString) =
-    send_message(conn, id, codeunits(mesg))
+send_message(conn::YakConnection, type::Char, mesg::AbstractString) =
+    send_message(conn, type, codeunits(mesg))
 
-function send_message(::Type{UInt8}, conn::YakConnection, id::Char,
+function send_message(::Type{UInt8}, conn::YakConnection, type::Char,
                       mesg::AbstractVector{T}) where {T}
     isconcretetype(T) || throw(ArgumentError(
         "message content must have elements of concrete type, got `$T`"))
@@ -94,7 +94,7 @@ function send_message(::Type{UInt8}, conn::YakConnection, id::Char,
     end
     header = Array{UInt8}(undef, 3 + ndigits)
     i = firstindex(header) - 1
-    header[i += 1] = id
+    header[i += 1] = type
     header[i += 1] = ':'
     rest = nbytes
     for j in 1:ndigits
