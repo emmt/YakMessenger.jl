@@ -80,54 +80,54 @@ See also [`YakMessenger.recv_message`](@ref).
 
 """
 send_message(conn::YakConnection, id::Char, mesg::AbstractString) =
-    send_message(codeunit(mesg), conn, id, mesg)
+    send_message(conn, id, codeunits(mesg))
 
-function send_message(::DataType, conn::YakConnection, id::Char, mesg::AbstractString)
-    mesg = String(mesg)
-    codeunit(mesg) === UInt8 || error("cannot convert message to code unit `UInt8`")
-    return send_message(UInt8, conn, id, mesg)
-end
-
-function send_message(::Type{UInt8}, conn::YakConnection, id::Char, mesg::AbstractString)
-    codeunit(mesg) === UInt8 || throw(ArgumentError(
-        "expecting code unit `UInt8`, got $(codeunit(mesg))"))
-    len = ncodeunits(mesg) # number of bytes of the message
-    ndigits = 1
-    m = 10
-    while len ≥ m
+function send_message(::Type{UInt8}, conn::YakConnection, id::Char,
+                      mesg::AbstractVector{T}) where {T}
+    isconcretetype(T) || throw(ArgumentError(
+        "message content must have elements of concrete type, got `$T`"))
+    nbytes = sizeof(T)*length(mesg) # number of bytes of the message
+    ndigits, m = 1, 10
+    while m ≤ nbytes
         ndigits += 1
         m *= 10
     end
-    buffer = Array{UInt8}(undef, 4 + ndigits + len)
-    i = firstindex(buffer) - 1
-    buffer[i += 1] = id
-    buffer[i += 1] = ':'
-    r = len
+    header = Array{UInt8}(undef, 3 + ndigits)
+    i = firstindex(header) - 1
+    header[i += 1] = id
+    header[i += 1] = ':'
+    rest = nbytes
     for j in 1:ndigits
         m = div(m, 10)
-        q, r = divrem(r, m)
-        buffer[i += 1] = '0' + q
+        digit, rest = divrem(rest, m)
+        header[i += 1] = '0' + digit
     end
-    buffer[i += 1] = '\n'
-    for j in 1:len
-        buffer[i += 1] = codeunit(mesg, j)
-    end
-    buffer[i += 1] = '\n'
-    @assert i == length(buffer)
-    write(conn.io, buffer) # FIXME close connection on error?
+    header[i += 1] = '\n'
+    @assert i == length(header)
+    write(conn.io, header) # FIXME close connection on error?
+    write(conn.io, mesg) # FIXME close connection on error?
+    write(conn.io, UInt8('\n')) # FIXME close connection on error?
     return nothing
 end
 
 """
-    YakMessenger.recv_message(conn) -> (type, mesg)
+    YakMessenger.recv_message([T = String,] conn) -> (type, mesg::T)
 
 Receive a message from the connected peer on `conn`. The result is a 2-tuple: `type` is
-the message type, `mesg` is the message content.
+the message type, `mesg` is the message content. Optional argument `T` is the type of
+`mesg`: either `String` (the default) or `Vector{UInt8}`.
 
-Also see [`YakMessenger.send_message`](@ref).
+See also [`YakMessenger.send_message`](@ref).
 
 """
-function recv_message(conn::YakConnection)
+recv_message(conn::YakConnection) = recv_message(String, conn)
+
+function recv_message(::Type{Vector{UInt8}}, conn::YakConnection)
+    type, mesg = recv_message(Vector{UInt8}, conn)
+    return type, String(mesg)
+end
+
+function recv_message(::Type{Vector{UInt8}}, conn::YakConnection)
 
     # Read the message header. The minimal header size if 4 bytes. The remaining bytes are
     # read one by one.
