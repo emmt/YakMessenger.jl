@@ -163,7 +163,7 @@ function recv_message(::Type{Vector{UInt8}}, conn::YakConnection)
         close(conn)
         throw(malformed_message('\n', byte))
     end
-    mesg = String(resize!(buffer, mesg_size))
+    mesg = resize!(buffer, mesg_size)
     return mesg_type, mesg
 end
 
