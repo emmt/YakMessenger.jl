@@ -54,6 +54,8 @@ where `command` is a string whose interpretation depends on the server.
 The connection is automatically closed when `conn` is garbage collected but may be
 explicitly closed by `close(conn)`.
 
+See also [`YakMessenger.send_message`](@ref) and [`YakMessenger.recv_message`](@ref).
+
 """
 YakConnection(port::Integer) = connect(port)
 YakConnection(host, port::Integer) = connect(host, port)
@@ -74,7 +76,7 @@ end
 Send a message to the connected peer on `conn`. Argument `type` is a character
 to specify the message type. Argument `mesg` is the message content.
 
-Also see [`YakMessenger.recv_message`](@ref).
+See also [`YakMessenger.recv_message`](@ref).
 
 """
 send_message(conn::YakConnection, id::Char, mesg::AbstractString) =

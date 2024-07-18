@@ -1,8 +1,8 @@
 /*
  * Yak is *yet another kind* of messaging system.
  *
- * This file implements the message protocol, a simple Yak server executiong Yorick
- * commands, and the methods for Yorick clients.
+ * This file implements the message protocol, a simple Yak server executing Yorick
+ * commands, and the functions for Yorick clients.
  *
  * Server side
  * ===========
@@ -43,14 +43,16 @@
  * Message format
  * ==============
  *
- * The protocol is simple and based on textual messages of the form (using shell syntax):
+ * The protocol is simple and based on messages of the form (using shell syntax):
  *
- *     "${id}:${len}\n${mesg}\n"
+ *     "${type}:${size}\n${mesg}\n"
  *
- *  where `${id}` is a single ASCII character specifying the type of the message: `X` for
- *  an eXpression to be evaluated, `E` for an Error, `R` for a Result, `${len}` is the
- *  length of the message content (in bytes, not accounting for the final newline), `\n`
- *  is a newline character (ASCII 0x0a) and `${mesg}` is the message content.
+ *  where `${type}` is a single ASCII character specifying the type of the message: `X`
+ *  for an eXpression to be evaluated, `E` for an Error, `R` for a Result, `${size}` is
+ *  the length of the message content (in bytes, not accounting for the final newline),
+ *  `\n` is a newline character (ASCII 0x0a) and `${mesg}` is the message content. The
+ *  header part of the message `"${type}:${size}\n"` is textual; the remaining part may be
+ *  binary or textual.
  *
  *  A server only responds to messages of type `X`. Other messages are just printed.
  *
@@ -63,7 +65,7 @@
  * When a callback is called with no pending data to receive, it means that connection
  * has been closed by peer.
  *
- * In a callback, commands like `pause` are not allowed.
+ * In a callback, commands like `pause` or `mouse` are not allowed.
  *
  * Calls to `sockrecv` are blocking.
  */
