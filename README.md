@@ -5,11 +5,14 @@ between a server and its connected clients.
 
 ## Contents
 
-In the [`yorick`](./yorick) directory, there is a Yorick implementation of the messaging
-system, with a simple Yorick command server and functions for Yorick clients.
-
 In the [`src`](./src) directory, there is a Julia implementation of the messaging system
 with methods for Julia clients.
+
+In the [`tcl`](./tcl) directory, there is a Tcl/Tk implementation of the messaging
+system and functions for Yorick clients.
+
+In the [`yorick`](./yorick) directory, there is a Yorick implementation of the messaging
+system, with a simple Yorick command server and functions for Yorick clients.
 
 ## Julia usage for clients
 
