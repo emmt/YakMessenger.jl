@@ -185,39 +185,39 @@ func yak_send(sock, expr)
     if (! is_string(expr) || ! is_scalar(expr)) {
         error, "expression must be a scalar string";
     }
-    _yak_send_message, sock, 'X', expr;
-    local id;
-    str = _yak_recv_message(sock, id);
-    if (id == 'R') {
+    yak_send_message, sock, 'X', expr;
+    local type;
+    str = yak_recv_message(sock, type);
+    if (type == 'R') {
         // Normal result.
         return str;
-    } else if (id == 'E') {
+    } else if (type == 'E') {
         // Some error occurred.
         error, str;
     } else {
         // Some unexpected result.
-        error, swrite("unexpected message type = %d", id);
+        error, swrite("unexpected message type = %d", type);
     }
 }
 
-func _yak_send_message(sock, id, mesg)
-/* DOCUMENT err = _yak_send_message(sock, id, mesg);
-         or _yak_send_message, sock, id, mesg;
+func yak_send_message(sock, type, mesg)
+/* DOCUMENT err = yak_send_message(sock, type, mesg);
+         or yak_send_message, sock, type, mesg;
 
      Send formated message to peer via socket `sock` using a simple protocol: the snet
-     bytes are `ID:LEN\nMESG\n` where `ID` is the message identifier (a character), `LEN`
-     is `strlen(mesg)` in decimal format, `\n` is a newline character (ASCII 0x0a), and
-     `MESG` is the message.
+     bytes are `TYPE:SIZE\nMESG\n` where `TYPE` is the message identifier (a character),
+     `SIZE` is `strlen(mesg)` in decimal format, `\n` is a newline character (ASCII 0x0a),
+     and `MESG` is the message.
 
      When called as a function, no errors get thrown: a void result is returned on
      success, an error message is returned on error.
 
      When called as a sub-routine, errors are thrown.
 
-   SEE ALSO: yak_send, _yak_recv_message.
+   SEE ALSO: yak_send, yak_recv_message.
  */
 {
-    buffer = strchar(swrite(format="%c:%d\n%s", id, strlen(mesg), mesg));
+    buffer = strchar(swrite(format="%c:%d\n%s", type, strlen(mesg), mesg));
     buffer(0) = '\n';
     nbytes = socksend(sock, buffer);
     if (nbytes != sizeof(buffer)) {
@@ -230,23 +230,19 @@ func _yak_send_message(sock, id, mesg)
     }
 }
 
-func _yak_recv_message(sock, &id)
-/* DOCUMENT local id;
-            str = _yak_recv_message(sock, id);
+func yak_recv_message(sock, &type)
+/* DOCUMENT local type;
+            str = yak_recv_message(sock, type);
 
-     Private function to receive a message from a connected peer. This function does not
+     Low-level function to receive a message from a connected peer. This function does not
      throw errors because it may be used in a callback. Returned value is a string, `str`.
      If an error occurs, `str` is the error message; otherwise, `str` is the message
-     content. Caller's variable `id` is set to indicate an error (`id < 0`) or to identify
-     the type of the message.
+     content. Caller's variable `type` is set to indicate an error (`type < 0`) or to
+     identify the type of the message.
 
-   SEE ALSO: yak_send, _yak_send_message;
+   SEE ALSO: yak_send, yak_send_message;
  */
 {
-    // In case of error, the error message is returned and early return can only occur on
-    // error.
-    id = 'E'; // for now, assume some error occured
-
     // Read the message header. The minimal header size if 4 bytes. Since calls to
     // `sockrecv` are blocking, any truncated results mean that peer has closed the
     // connection.
@@ -255,11 +251,13 @@ func _yak_recv_message(sock, &id)
     buffer = array(char, 4);
     nbytes = sockrecv(sock, buffer);
     if (nbytes < sizeof(buffer)) {
+        type = 'E';
         return _yak_sockrecv_error(nbytes);
     }
     type = buffer(1); // message type
-    size = buffer(3) - zero;
+    size = buffer(3) - zero; // message content size
     if (buffer(2) != ':' || size < 0 || size > 9) {
+        type = 'E';
         return _yak_malformed_message();
     }
     local byte;
@@ -270,6 +268,7 @@ func _yak_recv_message(sock, &id)
             // Read one more byte.
             nbytes = sockrecv(sock, byte);
             if (nbytes < 1) {
+                type = 'E';
                 return _yak_sockrecv_error(nbytes);
             }
         }
@@ -278,6 +277,7 @@ func _yak_recv_message(sock, &id)
         }
         digit = byte - zero;
         if (digit < 0 || digit > 9) {
+            type = 'E';
             return _yak_malformed_message();
         }
         size = digit + 10*size;
@@ -290,14 +290,15 @@ func _yak_recv_message(sock, &id)
     }
     nbytes = sockrecv(sock, buffer);
     if (nbytes < sizeof(buffer)) {
+        type = 'E';
         return _yak_sockrecv_error(nbytes);
     }
     if (buffer(0) != newline) {
         // Final newline is missing.
+        type = 'E';
         return _yak_malformed_message();
     }
     buffer(0) = 0;
-    id = type; // there were no errors
     return strchar(buffer);
 }
 
@@ -336,31 +337,31 @@ func _yak_recv_callback(_yak_sock)
 {
     // IMPORTANT: All symbols must be prefixed with _yak_ to avoid collisions in
     //            evaluating code.
-    local _yak_id;
-    _yak_mesg = _yak_recv_message(_yak_sock, _yak_id);
-    if (_yak_id == 'X') {
-        _yak_result = _yak_eval(_yak_mesg, _yak_id);
+    local _yak_type;
+    _yak_mesg = yak_recv_message(_yak_sock, _yak_type);
+    if (_yak_type == 'X') {
+        _yak_result = _yak_eval(_yak_mesg, _yak_type);
         //if (is_void(_yak_result)) {
         //    _yak_result = "";
         //} else
         if (! is_string(_yak_result) || ! is_scalar(_yak_result)) {
             _yak_result = yak_to_text(_yak_result);
         }
-        _yak_err = _yak_send_message(_yak_sock, _yak_id, _yak_result);
+        _yak_err = yak_send_message(_yak_sock, _yak_type, _yak_result);
         if (! is_void(_yak_err)) {
             _yak_error, _yak_err;
         }
-    } else if (_yak_id == 'E') {
+    } else if (_yak_type == 'E') {
         _yak_error, _yak_mesg;
     } else {
-        write, format="YAK INFO (%c): %s\n", _yak_id, _yak_mesg;
+        write, format="YAK INFO (%c): %s\n", _yak_type, _yak_mesg;
     }
 }
 
 local _yak_eval_result, _yak_eval_status;
 local _yak_eval_assign, _yak_eval_expression, _yak_eval_subroutine;
-func _yak_eval(_yak_eval_expr, &_yak_eval_id)
-/* DOCUMENT res = _yak_eval(expr, &id);
+func _yak_eval(_yak_eval_expr, &_yak_eval_type)
+/* DOCUMENT res = _yak_eval(expr, &type);
 
      Private subroutine called by the server to evaluate an expression. `expr` must be a
      simple Yorick expression, there following syntaxes are supported:
@@ -380,10 +381,10 @@ func _yak_eval(_yak_eval_expr, &_yak_eval_id)
  */
 {
     // Manage to report errors.
-    _yak_eval_id = 'R';
+    _yak_eval_type = 'R';
     if (catch(-1)) {
         // Some runtime error occurred.
-        _yak_eval_id = 'E';
+        _yak_eval_type = 'E';
         return catch_message;
     }
 
