@@ -13,10 +13,7 @@ struct YakError
     mesg::String
 end
 
-function Base.showerror(io::IO, err::YakError)
-    print(io, "YakError: ")
-    print(io, err.mesg)
-end
+Base.showerror(io::IO, err::YakError) = print(io, "YakError: ", err.mesg)
 
 mutable struct YakConnection{T<:IO}
     io::T
@@ -26,9 +23,7 @@ end
 # Extend base functions.
 Base.isopen(conn::YakConnection) = isopen(conn.io)
 function Base.close(conn::YakConnection)
-    if isopen(conn)
-        close(conn.io)
-    end
+    isopen(conn) && close(conn.io)
     return nothing
 end
 #Base.write(conn::YakConnection, args...) = write(conn.io, args...)
@@ -37,13 +32,13 @@ end
 
 """
     import YakMessenger
-    conn = YakMessenger.connect([host,] port)
+    conn = YakMessenger.connect(host="localhost", port)
 
     using YakMessenger
-    conn = YakConnection([host,] port)
+    conn = YakConnection(host="localhost" port)
 
-Connect to server on given `host` and `port`. Localhost is assumed if `host` is not
-specified.
+Connect to server on given `host` and `port`. If `host` is not specified, `"localhost"` is
+assumed.
 
 To send a command to the server (and receive an answer), simply do:
 
@@ -73,16 +68,16 @@ end
 """
     YakMessenger.send_message(conn, type, mesg)
 
-Send a message to the connected peer on `conn`. Argument `type` is a character
-to specify the message type. Argument `mesg` is the message content.
+Send a message to the connected peer on `conn`. Argument `type` is a character to specify
+the message type. Argument `mesg` is the message content.
 
 See also [`YakMessenger.recv_message`](@ref).
 
 """
-send_message(conn::YakConnection, type::Char, mesg::AbstractString) =
+send_message(conn::YakConnection, type::AbstractChar, mesg::AbstractString) =
     send_message(conn, type, codeunits(mesg))
 
-function send_message(::Type{UInt8}, conn::YakConnection, type::Char,
+function send_message(conn::YakConnection, type::AbstractChar,
                       mesg::AbstractVector{T}) where {T}
     isconcretetype(T) || throw(ArgumentError(
         "message content must have elements of concrete type, got `$T`"))
@@ -92,7 +87,7 @@ function send_message(::Type{UInt8}, conn::YakConnection, type::Char,
         ndigits += 1
         m *= 10
     end
-    header = Array{UInt8}(undef, 3 + ndigits)
+    header = Vector{UInt8}(undef, 3 + ndigits)
     i = firstindex(header) - 1
     header[i += 1] = type
     header[i += 1] = ':'
@@ -104,33 +99,36 @@ function send_message(::Type{UInt8}, conn::YakConnection, type::Char,
     end
     header[i += 1] = '\n'
     @assert i == length(header)
-    write(conn.io, header) # FIXME close connection on error?
-    write(conn.io, mesg) # FIXME close connection on error?
-    write(conn.io, UInt8('\n')) # FIXME close connection on error?
+    try
+        write(conn.io, header, mesg, UInt8('\n'))
+        flush(conn.io)
+    catch ex
+        close(conn)
+        rethrow(ex)
+    end
     return nothing
 end
 
 """
     YakMessenger.recv_message([T = String,] conn) -> (type, mesg::T)
 
-Receive a message from the connected peer on `conn`. The result is a 2-tuple: `type` is
-the message type, `mesg` is the message content. Optional argument `T` is the type of
-`mesg`: either `String` (the default) or `Vector{UInt8}`.
+Receive a message from the connected peer on `conn`. The result is a 2-tuple: `type` is the
+message type, `mesg` is the message content. Optional argument `T` is the type of `mesg`:
+either `String` (the default) or `Vector{UInt8}` to receive raw bytes.
 
 See also [`YakMessenger.send_message`](@ref).
 
 """
 recv_message(conn::YakConnection) = recv_message(String, conn)
 
-function recv_message(::Type{Vector{UInt8}}, conn::YakConnection)
+function recv_message(::Type{String}, conn::YakConnection)
     type, mesg = recv_message(Vector{UInt8}, conn)
     return type, String(mesg)
 end
 
 function recv_message(::Type{Vector{UInt8}}, conn::YakConnection)
-
     # Read the message header. The minimal header size if 4 bytes. The remaining bytes are
-    # read one by one.
+    # read one by one to avoid blocking.
     newline = UInt8('\n')
     buffer = Array{UInt8}(undef, 4)
     read!(conn.io, buffer)
@@ -156,7 +154,7 @@ function recv_message(::Type{Vector{UInt8}}, conn::YakConnection)
         end
     end
 
-    # Read the remainingg part of the message, that is its content.
+    # Read the remaining part of the message, that is its content.
     read!(conn.io, resize!(buffer, mesg_size + 1)) # +1 for the final newline
     byte = buffer[end]
     if byte != UInt8('\n')
@@ -170,7 +168,7 @@ end
 hex(b::Unsigned) = string(b, base=16)
 hex(c::Char) = hex(Integer(c))
 
-@noinline malformed_message(c::Char, b::UInt8) =
+@noinline malformed_message(c::AbstractChar, b::UInt8) =
     YakError("malformed message, expecting a '$c' (ASCII 0x$(hex(c))), got 0x$(hex(b))")
 
 @noinline malformed_message(s::AbstractString, b::UInt8) =
