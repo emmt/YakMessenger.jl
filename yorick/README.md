@@ -38,6 +38,20 @@ Restrictions:
 - the result is returned as a string.
 
 
+## Installation
+
+Copy file [`yak.i`](./yak.i) in directory `Y_SITE/i0` and file
+[`yak-start.i`](./yak-start.i) in directory `Y_SITE/i-start` where `$Y_SITE` is Yorick's
+platform independent *site directory*.
+
+If you have [`EasyYorick`](https://github.com/emmt/EasyYorick) installed, then just do:
+
+``` sh
+ypkg update ypkg  # update EasyYorick database and code
+ypkg install yak  # install Yak for Yorick
+```
+
+
 ## Message format
 
 The protocol is simple and based on messages of the form (using shell syntax):
