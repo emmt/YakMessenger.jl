@@ -394,8 +394,12 @@ func _yak_eval(_yak_eval_expr, &_yak_eval_type)
     local _yak_eval_func;
     _yak_eval_subroutine = 0n; // expression to evaluate is a subroutine call?
     _yak_eval_head = _yak_eval_tail = string();
+    _yak_eval_expr = strtrimright(_yak_eval_expr); // get rid of trailing spaces
+    if (strpart(_yak_eval_expr, 0:0) == ";") {
+        _yak_eval_expr = strpart(_yak_eval_expr, 1:-1); // get rid of a trailing semicolon
+    }
     _yak_eval_count = sread(_yak_eval_expr, format=" %[_a-zA-Z0-9] %[^ ]", _yak_eval_head,
-                             _yak_eval_tail);
+                            _yak_eval_tail);
     if (_yak_eval_count >= 1 && ! strglob("[0-9]*", _yak_eval_head)) {
         // First token is a valid symbol.
         if (_yak_eval_count == 1) {
