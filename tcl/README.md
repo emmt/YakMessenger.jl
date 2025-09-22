@@ -1,6 +1,6 @@
-# Tcl/Tk implementation of `YakMessenger`
+# Tcl/Tk implementation of Yak messaging system
 
-`YakMessenger` is *yet another kind* of messaging system.
+`Yak` is *yet another kind* of messaging system.
 
 ## Usage
 

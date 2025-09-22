@@ -1,4 +1,4 @@
-# Yak is *yet another kind* of messaging system
+# Yorick implementation of Yak messaging system
 
 This directory contains a [Yorick](https://github.com/LLNL/yorick) implementation of the Yak
 message protocol. File [`yak.i`](./yak.i) implements a simple Yak server executing Yorick
