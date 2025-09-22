@@ -13,7 +13,9 @@ A server is started by `yak_start`, stopped by `yak_shutdown`.
 
 To connect a client:
 
-    sock = yak_connect(port);
+``` c
+sock = yak_connect(port);
+```
 
 with `port` the port number where the server is listening. The connection is automatically
 closed when `sock` is no longer used. The connection may be explicitly closed by calling
@@ -21,15 +23,19 @@ closed when `sock` is no longer used. The connection may be explicitly closed by
 
 To evaluate an expression:
 
-    result = yak_send(sock, expr);
-    yak_send, sock, expr;
+``` c
+result = yak_send(sock, expr);
+yak_send, sock, expr;
+```
 
 Example:
 
-    val = yak_send(sock, "varname");     // retrieve the value of a global variable
-    yak_send, sock, "fma";               // call a sub-routine with no arguments
-    yak_send, sock, "pli, random(4,5)";  // call a sub-routine with arguments
-    val = yak_send(sock, "sqrt(x) + y"); // evaluate expression
+``` c
+val = yak_send(sock, "varname");     // retrieve the value of a global variable
+yak_send, sock, "fma";               // call a sub-routine with no arguments
+yak_send, sock, "pli, random(4,5)";  // call a sub-routine with arguments
+val = yak_send(sock, "sqrt(x) + y"); // evaluate expression
+```
 
 Restrictions:
 
@@ -56,7 +62,9 @@ ypkg install yak  # install Yak for Yorick
 
 The protocol is simple and based on messages of the form (using shell syntax):
 
-    "${type}:${size}\n${mesg}\n"
+``` sh
+"${type}:${size}\n${mesg}\n"
+```
 
 where `${type}` is a single ASCII character specifying the type of the message: `X` for an
 eXpression to be evaluated, `E` for an Error, `R` for a Result, `${size}` is the length of
