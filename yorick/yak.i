@@ -1,8 +1,8 @@
 /*
  * Yak is *yet another kind* of messaging system.
  *
- * This file implements the message protocol, a simple Yak server executing Yorick
- * commands, and the functions for Yorick clients.
+ * This file implements the message protocol, a simple Yak server executing Yorick commands,
+ * and the functions for Yorick clients.
  *
  * Server side
  * ===========
@@ -47,23 +47,23 @@
  *
  *     "${type}:${size}\n${mesg}\n"
  *
- *  where `${type}` is a single ASCII character specifying the type of the message: `X`
- *  for an eXpression to be evaluated, `E` for an Error, `R` for a Result, `${size}` is
- *  the length of the message content (in bytes, not accounting for the final newline),
- *  `\n` is a newline character (ASCII 0x0a) and `${mesg}` is the message content. The
- *  header part of the message `"${type}:${size}\n"` is textual; the remaining part may be
- *  binary or textual.
+ * where `${type}` is a single ASCII character specifying the type of the message: `X` for
+ * an eXpression to be evaluated, `E` for an Error, `R` for a Result, `${size}` is the
+ * length of the message content (in bytes, not accounting for the final newline), `\n` is a
+ * newline character (ASCII 0x0a) and `${mesg}` is the message content. The header part of
+ * the message `"${type}:${size}\n"` is textual; the remaining part may be binary or
+ * textual.
  *
- *  A server only responds to messages of type `X`. Other messages are just printed.
+ * A server only responds to messages of type `X`. Other messages are just printed.
  *
- *  A client sends messages of type `X` and receives answers of type `R` (in case of
- *  success) or `E` (in case of error).
+ * A client sends messages of type `X` and receives answers of type `R` (in case of success)
+ * or `E` (in case of error).
  *
  * Implementation notes
  * ====================
  *
- * When a callback is called with no pending data to receive, it means that connection
- * has been closed by peer.
+ * When a callback is called with no pending data to receive, it means that connection has
+ * been closed by peer.
  *
  * In a callback, commands like `pause` or `mouse` are not allowed.
  *
@@ -95,7 +95,7 @@ func yak_start(port)
          or yak_start, port;
 
      Start Yak server on port number `port`. If port number is unspecified, a randomly
-     chosen unused port number is use. If called as a function, the port number is
+     chosen unused port number is used. If called as a function, the port number is
      returned. If called as a subroutine, a message is printed indicating the port number.
 
    SEE ALSO: yak_shutdown, yak_get_server_port.
@@ -154,8 +154,8 @@ func yak_to_text(data)
 func yak_connect(port)
 /* DOCUMENT sock = yak_connect(port);
 
-     Connect to Yorick server on `port`. The connection is automatically closed when
-     `sock` is no longer referenced but may be explicitly closed by `close, sock`.
+     Connect to Yorick server on `port`. The connection is automatically closed when `sock`
+     is no longer referenced but may be explicitly closed by `close, sock`.
 
    SEE ALSO: yak_send.
  */
@@ -166,9 +166,9 @@ func yak_connect(port)
 func yak_send(sock, expr)
 /* DOCUMENT str = yak_send(sock, expr);
 
-     This function sends a Yorick expression `expr` as a string to be evaluated by the
-     peer server on socket `sock` and returns a string result, `str`. Expression `expr`
-     can be one of:
+     This function sends a Yorick expression `expr` as a string to be evaluated by the peer
+     server on socket `sock` and returns a string result, `str`. Expression `expr` can be
+     one of:
 
      - `var` to retrieve the value of the global variable `var`;
 
@@ -204,13 +204,13 @@ func yak_send_message(sock, type, mesg)
 /* DOCUMENT err = yak_send_message(sock, type, mesg);
          or yak_send_message, sock, type, mesg;
 
-     Send formated message to peer via socket `sock` using a simple protocol: the snet
+     Send formatted message to peer via socket `sock` using a simple protocol: the sent
      bytes are `TYPE:SIZE\nMESG\n` where `TYPE` is the message identifier (a character),
      `SIZE` is `strlen(mesg)` in decimal format, `\n` is a newline character (ASCII 0x0a),
      and `MESG` is the message.
 
-     When called as a function, no errors get thrown: a void result is returned on
-     success, an error message is returned on error.
+     When called as a function, no errors get thrown: a void result is returned on success,
+     an error message is returned on error.
 
      When called as a sub-routine, errors are thrown.
 
@@ -283,7 +283,7 @@ func yak_recv_message(sock, &type)
         size = digit + 10*size;
     }
 
-    // Read the remainingg part of the message, that is its content.
+    // Read the remaining part of the message, that is its content.
     ++size; // for the final newline
     if (sizeof(buffer) != size) {
         buffer = array(char, size);
@@ -389,8 +389,8 @@ func _yak_eval(_yak_eval_expr, &_yak_eval_type)
     }
 
     // Evaluate the expression according to its inferred type. An auxiliary function,
-    // `_yak_eval_fun`, is compiled and called to correctly handle statements like
-    // `catch` (see Yorick's `exec` function).
+    // `_yak_eval_fun`, is compiled and called to correctly handle statements like `catch`
+    // (see Yorick's `exec` function).
     local _yak_eval_func;
     _yak_eval_subroutine = 0n; // expression to evaluate is a subroutine call?
     _yak_eval_head = _yak_eval_tail = string();
@@ -400,8 +400,8 @@ func _yak_eval(_yak_eval_expr, &_yak_eval_type)
         // First token is a valid symbol.
         if (_yak_eval_count == 1) {
             // Code looks like "sub", a sub-routine call, or "var" a simple variable. We
-            // mimic Yorick's REPL behavior: if symbol is defined and is a function, call
-            // it as a subroutine; otherwise, returns its value (possibly void).
+            // mimic Yorick's REPL behavior: if symbol is defined and is a function, call it
+            // as a subroutine; otherwise, returns its value (possibly void).
             _yak_eval_value = yak_get_value(_yak_eval_head);
             if (is_func(_yak_eval_value) != 0) {
                 // Assume a subroutine call.
