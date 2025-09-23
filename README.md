@@ -8,6 +8,9 @@ between a server and its connected clients.
 In the [`src`](./src) directory, there is a Julia implementation of the messaging system
 with methods for Julia clients.
 
+In the [`c`](./c) directory, there is a C implementation of the messaging system with
+methods for clients and a small demonstration program.
+
 In the [`tcl`](./tcl) directory, there is a Tcl/Tk implementation of the messaging
 system and functions for Yorick clients.
 
